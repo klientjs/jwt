@@ -1,9 +1,9 @@
 import Klient, { RequestEvent } from '@klient/core';
 import { mockAxiosWithRestApi } from '@klient/testing';
 
-import '../src';
+import '..';
 
-import type { JwtSecurity, LoginEvent, KlientExtended, Parameters } from '../src';
+import type { JwtSecurity, LoginEvent, KlientExtended, Parameters } from '..';
 
 jest.mock('axios');
 
