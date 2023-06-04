@@ -117,7 +117,7 @@ export default class JwtSecurity {
     });
   }
 
-  refresh<T>(event?: RequestEvent) {
+  refresh<T>() {
     // eslint-disable-next-line unused-imports/no-unused-vars
     const { configure, map, ...refreshConfig } = this.getSecurityParameter('refresh', {}) as ConfigurableStep<string>;
 
@@ -136,19 +136,10 @@ export default class JwtSecurity {
       config.data = { refresh_token: this.refreshToken };
     }
 
-    return this.klient
-      .request<T>(config)
-      .then(async (response) => {
-        await this.mapLoginResponseToState(response, config, true);
-        return response;
-      })
-      .catch(async (err) => {
-        if (event) {
-          await this.handleCredentialsExpired(event, err);
-        }
-
-        throw err;
-      });
+    return this.klient.request<T>(config).then(async (response) => {
+      await this.mapLoginResponseToState(response, config, true);
+      return response;
+    });
   }
 
   setupRequest(request: Request) {
@@ -187,19 +178,23 @@ export default class JwtSecurity {
     // eslint-disable-next-line unused-imports/no-unused-vars
     const { configure, map, ...refreshConfig } = this.getSecurityParameter('refresh', {}) as ConfigurableStep<string>;
 
-    if (event.context.authenticate === false || !this.isAuthenticated || (!refreshConfig.url && !configure)) {
+    if (event.context.authenticate === false || !this.isAuthenticated || !this.isTokenExpired) {
       return;
     }
 
-    return this.isTokenExpired && this.isRefreshTokenExpired
-      ? this.handleCredentialsExpired(event, new Error('Unable to refresh credentials'))
-      : this.refresh(event);
+    const handleRefreshFailure = async (err: Error) => {
+      await this.handleCredentialsExpired(event, err);
+      throw err;
+    };
+
+    // Too late or no config for refreshing credentials
+    return this.isRefreshTokenExpired || (!refreshConfig.url && !configure)
+      ? handleRefreshFailure(new Error('Unable to refresh credentials'))
+      : this.refresh().catch(handleRefreshFailure);
   }
 
   protected handleCredentialsExpired(event: RequestEvent, err: AxiosError | Error) {
-    return this.klient.dispatcher.dispatch(new CredentialsExpiredEvent(event, err), false).then(() => {
-      throw err;
-    });
+    return this.klient.dispatcher.dispatch(new CredentialsExpiredEvent(event, err), false);
   }
 
   /**

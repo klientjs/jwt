@@ -177,6 +177,56 @@ test('expired', async () => {
     });
 });
 
+test('refresh:no-refresh-token', async () => {
+  const klient = new Klient<Parameters>({
+    jwt: {
+      login: {
+        url: '/auth',
+        method: 'POST',
+        map: ({ data }) => ({
+          token: data.token,
+          tokenExp: 0,
+          refreshToken: undefined,
+          refreshTokenExp: undefined
+        })
+      }
+    }
+  }) as KlientExtended;
+
+  await klient
+    .login({
+      username: 'test',
+      password: 'test',
+      exp: '0s'
+    })
+    .catch((e) => {
+      console.log(e);
+      throw e;
+    });
+
+  const { jwt } = klient;
+
+  expect(jwt.isAuthenticated).toBe(true);
+  expect(jwt.isTokenExpired).toBe(true);
+  expect(jwt.isRefreshTokenExpired).toBe(true);
+  expect(jwt.isCredentialsExpired).toBe(true);
+
+  const spyJwtExpiredEvent = jest.fn();
+
+  klient.on('jwt:expired', spyJwtExpiredEvent);
+
+  await klient
+    .request('/posts')
+    .then(() => {
+      throw new Error('This request must failed');
+    })
+    .catch((e) => {
+      expect(e.response).toBeUndefined();
+      expect(e.message).toBe('Unable to refresh credentials');
+      expect(spyJwtExpiredEvent).toBeCalledTimes(1);
+    });
+});
+
 test('unrefreshable', async () => {
   const klient = new Klient<Parameters>({
     jwt: {
