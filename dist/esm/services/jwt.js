@@ -64,7 +64,7 @@ export default class JwtSecurity {
             this.setState(undefined);
         });
     }
-    refresh(event) {
+    refresh() {
         const _a = this.getSecurityParameter('refresh', {}), { configure, map } = _a, refreshConfig = __rest(_a, ["configure", "map"]);
         const config = Object.assign({ context: {
                 action: JwtSecurity.ACTION_REFRESH_CREDENTIALS,
@@ -77,17 +77,9 @@ export default class JwtSecurity {
             config.method = 'POST';
             config.data = { refresh_token: this.refreshToken };
         }
-        return this.klient
-            .request(config)
-            .then((response) => __awaiter(this, void 0, void 0, function* () {
+        return this.klient.request(config).then((response) => __awaiter(this, void 0, void 0, function* () {
             yield this.mapLoginResponseToState(response, config, true);
             return response;
-        }))
-            .catch((err) => __awaiter(this, void 0, void 0, function* () {
-            if (event) {
-                yield this.handleCredentialsExpired(event, err);
-            }
-            throw err;
         }));
     }
     setupRequest(request) {
@@ -116,17 +108,19 @@ export default class JwtSecurity {
     }
     refreshCredentials(event) {
         const _a = this.getSecurityParameter('refresh', {}), { configure, map } = _a, refreshConfig = __rest(_a, ["configure", "map"]);
-        if (event.context.authenticate === false || !this.isAuthenticated || (!refreshConfig.url && !configure)) {
+        if (event.context.authenticate === false || !this.isAuthenticated || !this.isTokenExpired) {
             return;
         }
-        return this.isTokenExpired && this.isRefreshTokenExpired
-            ? this.handleCredentialsExpired(event, new Error('Unable to refresh credentials'))
-            : this.refresh(event);
-    }
-    handleCredentialsExpired(event, err) {
-        return this.klient.dispatcher.dispatch(new CredentialsExpiredEvent(event, err), false).then(() => {
+        const handleRefreshFailure = (err) => __awaiter(this, void 0, void 0, function* () {
+            yield this.handleCredentialsExpired(event, err);
             throw err;
         });
+        return this.isRefreshTokenExpired || (!refreshConfig.url && !configure)
+            ? handleRefreshFailure(new Error('Unable to refresh credentials'))
+            : this.refresh().catch(handleRefreshFailure);
+    }
+    handleCredentialsExpired(event, err) {
+        return this.klient.dispatcher.dispatch(new CredentialsExpiredEvent(event, err), false);
     }
     mapLoginResponseToState(response, request, isRefreshTokenResponse = false) {
         let { map } = this.getSecurityParameter('login', {});
