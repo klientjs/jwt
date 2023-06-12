@@ -1,3 +1,7 @@
+/**
+ * @jest-environment jsdom
+ */
+
 import Klient, { RequestEvent } from '@klient/core';
 import { mockAxiosWithRestApi } from '@klient/testing';
 
@@ -245,4 +249,34 @@ test('authenticate', async () => {
       console.log(e);
       throw e;
     });
+});
+
+test('watch:storage', async () => {
+  const klient = new Klient() as KlientExtended;
+
+  expect((klient.jwt as any).storage).toBe(undefined);
+
+  klient.parameters.set('jwt', {
+    storage: {
+      type: 'localStorage',
+      options: {
+        name: 'test'
+      }
+    }
+  });
+
+  expect((klient.jwt as any).storage.constructor.name).toBe('LocalStorage');
+
+  klient.parameters.set('jwt.storage.type', 'static');
+
+  expect((klient.jwt as any).storage.constructor.name).toBe('StaticStorage');
+
+  klient.parameters.set('jwt.storage', {
+    type: 'cookie',
+    options: {
+      name: 'test'
+    }
+  });
+
+  expect((klient.jwt as any).storage.constructor.name).toBe('CookieStorage');
 });

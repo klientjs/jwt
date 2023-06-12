@@ -55,7 +55,7 @@ export default class JwtSecurity {
   /**
    * Browser memory storage adapter.
    */
-  readonly storage: Storage | undefined;
+  protected storage: Storage | undefined;
 
   /**
    * The authentication state
@@ -63,20 +63,14 @@ export default class JwtSecurity {
   state: AuthenticationState | undefined;
 
   constructor(protected readonly klient: Klient) {
-    const storageConfig = this.getSecurityParameter('storage') as
-      | { type: string; options?: StorageOptions }
-      | undefined;
-
-    if (storageConfig?.type) {
-      this.storage = StorageFactory.create<AuthenticationState>(storageConfig.type, storageConfig.options);
-    }
-
-    this.state = this.storage?.read() as AuthenticationState | undefined;
+    this.intializeState();
 
     klient
       .on(RequestEvent.NAME, (e: RequestEvent) => this.refreshCredentials(e) as Promise<void> | void, 102)
       .on(RequestEvent.NAME, (e: RequestEvent) => this.setupRequest(e.request), 100)
       .on(CredentialsExpiredEvent.NAME, this.logout.bind(this), -100);
+
+    klient.parameters.watch('jwt.storage', this.intializeState.bind(this), true);
   }
 
   /**
@@ -252,6 +246,18 @@ export default class JwtSecurity {
     }
 
     return this.klient.parameters.get(`jwt.${key}`);
+  }
+
+  protected intializeState() {
+    const storageConfig = this.getSecurityParameter('storage') as
+      | { type: string; options?: StorageOptions }
+      | undefined;
+
+    if (storageConfig?.type) {
+      this.storage = StorageFactory.create<AuthenticationState>(storageConfig.type, storageConfig.options);
+    }
+
+    this.state = this.storage?.read() as AuthenticationState | undefined;
   }
 
   /**
