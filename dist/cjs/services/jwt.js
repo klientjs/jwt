@@ -31,17 +31,13 @@ const unixTimestamp = () => Math.floor(Date.now() / 1000);
 exports.unixTimestamp = unixTimestamp;
 class JwtSecurity {
     constructor(klient) {
-        var _a;
         this.klient = klient;
-        const storageConfig = this.getSecurityParameter('storage');
-        if (storageConfig === null || storageConfig === void 0 ? void 0 : storageConfig.type) {
-            this.storage = storage_1.default.create(storageConfig.type, storageConfig.options);
-        }
-        this.state = (_a = this.storage) === null || _a === void 0 ? void 0 : _a.read();
+        this.intializeState();
         klient
             .on(core_1.RequestEvent.NAME, (e) => this.refreshCredentials(e), 102)
             .on(core_1.RequestEvent.NAME, (e) => this.setupRequest(e.request), 100)
             .on(expired_1.default.NAME, this.logout.bind(this), -100);
+        klient.parameters.watch('jwt.storage', this.intializeState.bind(this), true);
     }
     login(credentials) {
         const _a = this.getSecurityParameter('login', {}), { configure, map } = _a, requestConfig = __rest(_a, ["configure", "map"]);
@@ -158,6 +154,14 @@ class JwtSecurity {
             return def;
         }
         return this.klient.parameters.get(`jwt.${key}`);
+    }
+    intializeState() {
+        var _a;
+        const storageConfig = this.getSecurityParameter('storage');
+        if (storageConfig === null || storageConfig === void 0 ? void 0 : storageConfig.type) {
+            this.storage = storage_1.default.create(storageConfig.type, storageConfig.options);
+        }
+        this.state = (_a = this.storage) === null || _a === void 0 ? void 0 : _a.read();
     }
     get isAuthenticated() {
         return typeof this.token === 'string';

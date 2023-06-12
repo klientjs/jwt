@@ -27,17 +27,13 @@ import LoginEvent from '../events/login';
 export const unixTimestamp = () => Math.floor(Date.now() / 1000);
 export default class JwtSecurity {
     constructor(klient) {
-        var _a;
         this.klient = klient;
-        const storageConfig = this.getSecurityParameter('storage');
-        if (storageConfig === null || storageConfig === void 0 ? void 0 : storageConfig.type) {
-            this.storage = StorageFactory.create(storageConfig.type, storageConfig.options);
-        }
-        this.state = (_a = this.storage) === null || _a === void 0 ? void 0 : _a.read();
+        this.intializeState();
         klient
             .on(RequestEvent.NAME, (e) => this.refreshCredentials(e), 102)
             .on(RequestEvent.NAME, (e) => this.setupRequest(e.request), 100)
             .on(CredentialsExpiredEvent.NAME, this.logout.bind(this), -100);
+        klient.parameters.watch('jwt.storage', this.intializeState.bind(this), true);
     }
     login(credentials) {
         const _a = this.getSecurityParameter('login', {}), { configure, map } = _a, requestConfig = __rest(_a, ["configure", "map"]);
@@ -154,6 +150,14 @@ export default class JwtSecurity {
             return def;
         }
         return this.klient.parameters.get(`jwt.${key}`);
+    }
+    intializeState() {
+        var _a;
+        const storageConfig = this.getSecurityParameter('storage');
+        if (storageConfig === null || storageConfig === void 0 ? void 0 : storageConfig.type) {
+            this.storage = StorageFactory.create(storageConfig.type, storageConfig.options);
+        }
+        this.state = (_a = this.storage) === null || _a === void 0 ? void 0 : _a.read();
     }
     get isAuthenticated() {
         return typeof this.token === 'string';

@@ -21,7 +21,7 @@ export default class JwtSecurity {
     protected readonly klient: Klient;
     static readonly ACTION_LOGIN = "jwt:login";
     static readonly ACTION_REFRESH_CREDENTIALS = "jwt:refresh";
-    readonly storage: Storage | undefined;
+    protected storage: Storage | undefined;
     state: AuthenticationState | undefined;
     constructor(klient: Klient);
     login<T>(credentials: unknown): Promise<AxiosResponse<T, any>>;
@@ -34,6 +34,7 @@ export default class JwtSecurity {
     protected handleCredentialsExpired(event: RequestEvent, err: AxiosError | Error): Promise<void>;
     protected mapLoginResponseToState(response: AxiosResponse, request: KlientRequestConfig, isRefreshTokenResponse?: boolean): Promise<void>;
     protected getSecurityParameter(key: string, def?: unknown): unknown;
+    protected intializeState(): void;
     get isAuthenticated(): boolean;
     get isTokenExpired(): boolean;
     get isRefreshTokenExpired(): boolean;

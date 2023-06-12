@@ -1,5 +1,12 @@
 # Changelog
 
+# [1.3.0](https://github.com/klientjs/jwt/compare/1.2.0...1.3.0) (2023-06-12)
+
+
+### Features
+
+* use watcher for listen changes made on jwt storage parameter ([75b6d7d](https://github.com/klientjs/jwt/commit/75b6d7df8d2c9e6c1ce16e05fdd4eecda1cdef32))
+
 # [1.2.0](https://github.com/klientjs/jwt/compare/1.1.0...1.2.0) (2023-06-04)
 
 
